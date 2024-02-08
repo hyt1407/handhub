@@ -1,11 +1,11 @@
 '''
-single-frame BEVerse with swin-small backbone
+single-frame BEVerse with swin-tiny backbone
 '''
 
 _base_ = [
-    '../../../configs/_base_/datasets/nus-3d.py',
-    '../../../configs/_base_/schedules/cyclic_20e.py',
-    '../../../configs/_base_/default_runtime.py'
+    '../../configs/_base_/datasets/nus-3d.py',
+    '../../configs/_base_/schedules/cyclic_20e.py',
+    '../../configs/_base_/default_runtime.py'
 ]
 
 # 23351MB for single-GPU training
@@ -25,8 +25,8 @@ class_names = [
 
 # Image-view augmentation
 data_aug_conf = {
-    'resize_lim': (0.82, 0.99),
-    'final_dim': (512, 1408),
+    'resize_lim': (0.38, 0.55),
+    'final_dim': (256, 704),
     'rot_lim': (-5.4, 5.4),
     'H': 900, 'W': 1600,
     'rand_flip': True,
@@ -77,13 +77,13 @@ model = dict(
     type='BEVerse',
     img_backbone=dict(
         type='SwinTransformer',
-        pretrained='https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_small_patch4_window7_224.pth',
+        pretrained='https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth',
         pretrain_img_size=224,
         embed_dims=96,
         patch_size=4,
         window_size=7,
         mlp_ratio=4,
-        depths=[2, 2, 18, 2],
+        depths=[2, 2, 6, 2],
         num_heads=[3, 6, 12, 24],
         strides=(4, 2, 2, 2),
         out_indices=(2, 3,),
@@ -121,9 +121,9 @@ model = dict(
         motion_grid_conf=motion_grid_conf,
         using_ego=True,
         task_enbale={
-            '3dod': False,
+            '3dod': True,
             'map': True,
-            'motion': False,
+            'motion': True,
         },
         task_weights={
             '3dod': 1.0,
@@ -267,7 +267,7 @@ train_pipeline = [
     dict(type='Collect3D',
          keys=['img_inputs', 'gt_bboxes_3d', 'gt_labels_3d', 'semantic_indices', 'semantic_map', 'future_egomotions', 'aug_transform', 'img_is_valid',
                'motion_segmentation', 'motion_instance', 'instance_centerness', 'instance_offset', 'instance_flow', 'has_invalid_frame'],
-         meta_keys=('filename', 'sample_idx', 'ori_shape', 'img_shape', 'lidar2img',
+         meta_keys=('filename', 'ori_shape', 'img_shape', 'lidar2img',
                     'depth2img', 'cam2img', 'pad_shape', 'lidar2ego_rots', 'lidar2ego_trans',
                     'scale_factor', 'flip', 'pcd_horizontal_flip',
                     'pcd_vertical_flip', 'box_mode_3d', 'box_type_3d',
@@ -318,9 +318,8 @@ input_modality = dict(
     prototype='lift-splat-shoot',
 )
 
-corruption_root = './data/robodrive-release'
 data = dict(
-    samples_per_gpu=4,
+    samples_per_gpu=8,
     workers_per_gpu=4,
     train=dict(
         type='CBGSDataset',
@@ -349,7 +348,6 @@ data = dict(
         ann_file=data_info_path + 'nuscenes_infos_val.pkl',
         modality=input_modality),
     test=dict(
-        corruption_root=corruption_root,
         type=dataset_type,
         pipeline=test_pipeline,
         classes=class_names,
@@ -363,11 +361,3 @@ data = dict(
 
 optimizer = dict(type='AdamW', lr=2e-4, weight_decay=0.01)
 evaluation = dict(interval=999, pipeline=test_pipeline)
-# corruptions = [
-#         'brightness', 'dark', 'fog', 'frost', 'snow', 'contrast',
-#         'defocus_blur', 'glass_blur', 'motion_blur', 'zoom_blur', 'elastic_transform', 'color_quant',
-#         'gaussian_noise', 'impulse_noise', 'shot_noise', 'iso_noise', 'pixelate', 'jpeg_compression'
-#     ]
-corruptions = [
-        'shot_noise', 'iso_noise', 'pixelate', 'jpeg_compression'
-    ]

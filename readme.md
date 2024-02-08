@@ -1,5 +1,5 @@
 ```shell
-bash tools/slurm_train.sh projects/configs/robodrive/beverse_convnext_v2.py ${num_gpus}
+bash tools/dist_train.sh configs/robodrive/beverse_convnext_v2.py ${num_gpus}
 ```
 
 

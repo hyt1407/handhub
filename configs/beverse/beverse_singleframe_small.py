@@ -3,9 +3,9 @@ single-frame BEVerse with swin-small backbone
 '''
 
 _base_ = [
-    '../../../configs/_base_/datasets/nus-3d.py',
-    '../../../configs/_base_/schedules/cyclic_20e.py',
-    '../../../configs/_base_/default_runtime.py'
+    '../../configs/_base_/datasets/nus-3d.py',
+    '../../configs/_base_/schedules/cyclic_20e.py',
+    '../../configs/_base_/default_runtime.py'
 ]
 
 # 23351MB for single-GPU training
@@ -99,7 +99,7 @@ model = dict(
         pretrain_style='official',
         output_missing_index_as_none=False),
     img_neck=dict(
-        type='FPN_LSS', in_channels=384 + 768, inverse=True, ),
+        type='FPN_LSS', in_channels=384+768, inverse=True,),
     transformer=dict(
         type='TransformerLSS',
         grid_conf=grid_conf,
@@ -137,7 +137,7 @@ model = dict(
             tasks=[
                 dict(num_class=1, class_names=['car']),
                 dict(num_class=2, class_names=[
-                    'truck', 'construction_vehicle']),
+                     'truck', 'construction_vehicle']),
                 dict(num_class=2, class_names=['bus', 'trailer']),
                 dict(num_class=1, class_names=['barrier']),
                 dict(num_class=2, class_names=['motorcycle', 'bicycle']),
@@ -230,7 +230,7 @@ model = dict(
                 0.4, 0.55], 1.1, [1.0, 1.0], [4.5, 9.0]],
         )))
 
-dataset_type = 'RobodriveDataset'
+dataset_type = 'MTLEgoNuScenesDataset'
 data_root = 'data/nuscenes/'
 data_info_path = 'data/nuscenes_infos/'
 
@@ -265,11 +265,9 @@ train_pipeline = [
     # bundle & collect
     dict(type='DefaultFormatBundle3D', class_names=class_names),
     dict(type='Collect3D',
-         keys=['img_inputs', 'gt_bboxes_3d', 'gt_labels_3d', 'semantic_indices', 'semantic_map', 'future_egomotions',
-               'aug_transform', 'img_is_valid',
-               'motion_segmentation', 'motion_instance', 'instance_centerness', 'instance_offset', 'instance_flow',
-               'has_invalid_frame'],
-         meta_keys=('filename', 'ori_shape', 'img_shape', 'lidar2img',
+         keys=['img_inputs', 'gt_bboxes_3d', 'gt_labels_3d', 'semantic_indices', 'semantic_map', 'future_egomotions', 'aug_transform', 'img_is_valid',
+               'motion_segmentation', 'motion_instance', 'instance_centerness', 'instance_offset', 'instance_flow', 'has_invalid_frame'],
+         meta_keys=('filename', 'sample_idx', 'ori_shape', 'img_shape', 'lidar2img',
                     'depth2img', 'cam2img', 'pad_shape', 'lidar2ego_rots', 'lidar2ego_trans',
                     'scale_factor', 'flip', 'pcd_horizontal_flip',
                     'pcd_vertical_flip', 'box_mode_3d', 'box_type_3d',
@@ -277,7 +275,7 @@ train_pipeline = [
                     'pcd_scale_factor', 'pcd_rotation', 'pts_filename',
                     'transformation_3d_flow', 'img_info')),
 ]
-val_pipeline = [
+test_pipeline = [
     dict(type='LoadMultiViewImageFromFiles_MTL',
          using_ego=True, data_aug_conf=data_aug_conf),
     dict(type='LoadAnnotations3D_MTL', with_bbox_3d=True,
@@ -285,6 +283,8 @@ val_pipeline = [
     dict(type='RasterizeMapVectors', map_grid_conf=map_grid_conf),
     dict(type='ConvertMotionLabels', grid_conf=motion_grid_conf, only_vehicle=True),
     # filter objects
+    # dict(type='TemporalObjectRangeFilter', point_cloud_range=point_cloud_range),
+    # dict(type='TemporalObjectNameFilter', classes=class_names),
     dict(type='ObjectValidFilter'),
     dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
     dict(type='ObjectNameFilter', classes=class_names),
@@ -300,50 +300,11 @@ val_pipeline = [
                 with_label=False),
             dict(
                 type='Collect3D',
-                keys=['img_inputs', 'semantic_indices', 'semantic_map', 'future_egomotions', 'gt_bboxes_3d',
-                      'gt_labels_3d', 'motion_segmentation',
-                      'motion_instance', 'instance_centerness', 'instance_offset', 'instance_flow', 'has_invalid_frame',
-                      'img_is_valid'],
-                meta_keys=(
-                    'filename', 'ori_shape', 'img_shape', 'lidar2img', 'depth2img', 'cam2img', 'pad_shape',
-                    'scale_factor',
-                    'flip',
-                    'pcd_horizontal_flip', 'pcd_vertical_flip', 'box_mode_3d', 'box_type_3d', 'img_norm_cfg',
-                    'pcd_trans',
-                    'sample_idx',
-                    'pcd_scale_factor', 'pcd_rotation', 'pts_filename', 'transformation_3d_flow', 'img_info',
-                    'lidar2ego_rots', 'lidar2ego_trans',)),
-        ],
-    ),
-]
-test_pipeline = [
-    dict(type='LoadMultiViewImageFromFiles_MTL',
-         using_ego=True, data_aug_conf=data_aug_conf),
-    # filter objects
-    # dict(type='TemporalObjectRangeFilter', point_cloud_range=point_cloud_range),
-    # dict(type='TemporalObjectNameFilter', classes=class_names),
-    dict(
-        type='MultiScaleFlipAug3D',
-        img_scale=(1333, 800),
-        pts_scale_ratio=1,
-        flip=False,
-        transforms=[
-            dict(
-                type='DefaultFormatBundle3D',
-                class_names=class_names,
-                with_label=False),
-            dict(
-                type='Collect3D',
-                keys=['img_inputs', 'future_egomotions', 'has_invalid_frame', 'img_is_valid'],
-                meta_keys=(
-                    'filename', 'sample_idx', 'ori_shape', 'img_shape', 'lidar2img', 'depth2img', 'cam2img',
-                    'pad_shape',
-                    'scale_factor', 'flip',
-                    'pcd_horizontal_flip', 'pcd_vertical_flip', 'box_mode_3d', 'box_type_3d', 'img_norm_cfg',
-                    'pcd_trans',
-                    'sample_idx',
-                    'pcd_scale_factor', 'pcd_rotation', 'pts_filename', 'transformation_3d_flow', 'img_info',
-                    'lidar2ego_rots', 'lidar2ego_trans',)),
+                keys=['img_inputs', 'semantic_indices', 'semantic_map', 'future_egomotions', 'gt_bboxes_3d', 'gt_labels_3d', 'motion_segmentation',
+                      'motion_instance', 'instance_centerness', 'instance_offset', 'instance_flow', 'has_invalid_frame', 'img_is_valid'],
+                meta_keys=('filename', 'ori_shape', 'img_shape', 'lidar2img', 'depth2img', 'cam2img', 'pad_shape', 'scale_factor', 'flip',
+                           'pcd_horizontal_flip', 'pcd_vertical_flip', 'box_mode_3d', 'box_type_3d', 'img_norm_cfg', 'pcd_trans', 'sample_idx',
+                           'pcd_scale_factor', 'pcd_rotation', 'pts_filename', 'transformation_3d_flow', 'img_info', 'lidar2ego_rots', 'lidar2ego_trans',)),
         ],
     ),
 ]
@@ -364,9 +325,7 @@ data = dict(
     train=dict(
         type='CBGSDataset',
         dataset=dict(
-            type='MTLEgoNuScenesDataset',
-            # type=dataset_type,
-            # corruption_root=corruption_root,
+            type=dataset_type,
             data_root=data_root,
             ann_file=data_info_path + 'nuscenes_infos_train.pkl',
             pipeline=train_pipeline,
@@ -380,16 +339,14 @@ data = dict(
             modality=input_modality,
             box_type_3d='LiDAR')),
     val=dict(
-        type='MTLEgoNuScenesDataset',
-        # type=dataset_type,
-        # corruption_root=corruption_root,
-        pipeline=val_pipeline,
+        type=dataset_type,
+        pipeline=test_pipeline,
         classes=class_names,
         receptive_field=receptive_field,
         future_frames=future_frames,
         grid_conf=grid_conf,
         map_grid_conf=map_grid_conf,
-        ann_file=data_info_path + 'robodrive_infos_test.pkl',
+        ann_file=data_info_path + 'nuscenes_infos_val.pkl',
         modality=input_modality),
     test=dict(
         corruption_root=corruption_root,
@@ -400,14 +357,17 @@ data = dict(
         future_frames=future_frames,
         grid_conf=grid_conf,
         map_grid_conf=map_grid_conf,
-        ann_file=data_info_path + 'robodrive_infos_test.pkl',
+        ann_file=data_info_path + 'nuscenes_infos_val.pkl',
         modality=input_modality),
 )
 
 optimizer = dict(type='AdamW', lr=2e-4, weight_decay=0.01)
 evaluation = dict(interval=999, pipeline=test_pipeline)
+# corruptions = [
+#         'brightness', 'dark', 'fog', 'frost', 'snow', 'contrast',
+#         'defocus_blur', 'glass_blur', 'motion_blur', 'zoom_blur', 'elastic_transform', 'color_quant',
+#         'gaussian_noise', 'impulse_noise', 'shot_noise', 'iso_noise', 'pixelate', 'jpeg_compression'
+#     ]
 corruptions = [
-    'brightness', 'dark', 'fog', 'frost', 'snow', 'contrast',
-    'defocus_blur', 'glass_blur', 'motion_blur', 'zoom_blur', 'elastic_transform', 'color_quant',
-    'gaussian_noise', 'impulse_noise', 'shot_noise', 'iso_noise', 'pixelate', 'jpeg_compression'
-]
+        'shot_noise', 'iso_noise', 'pixelate', 'jpeg_compression'
+    ]
