@@ -39,6 +39,7 @@ COPY mmdet3d-0.17.2-cp38-cp38-linux_x86_64.whl BEVerse.tar /code/
 RUN pip install mmdet3d-0.17.2-cp38-cp38-linux_x86_64.whl && rm mmdet3d-0.17.2-cp38-cp38-linux_x86_64.whl && tar -xvf BEVerse.tar && rm BEVerse.tar
 ENV PYTHONPATH=/code/BEVerse
 
+RUN pip install yapf==0.40.1 && pip install shapely==1.8.0 && rm -rf /tmp/*
 RUN mkdir /var/run/sshd \
     && echo "root:123456" | chpasswd \
     && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
