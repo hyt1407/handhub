@@ -4,3 +4,5 @@ from .models.dense_heads import MapHead, MultiTaskHead, MotionHead
 from .models.necks import TransformerLSS, NaiveTemporalModel, Temporal3DConvModel, TemporalIdentity
 from .models.motion_heads import FieryMotionHead, IterativeFlow
 from .models.detectors import BEVerse
+from .models.backbone import ConvNeXt
+from .models import utils
