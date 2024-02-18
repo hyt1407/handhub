@@ -359,8 +359,8 @@ input_modality = dict(
 
 corruption_root = './data/robodrive-release'
 data = dict(
-    samples_per_gpu=4,
-    workers_per_gpu=4,
+    samples_per_gpu=2,
+    workers_per_gpu=2,
     train=dict(
         type='CBGSDataset',
         dataset=dict(

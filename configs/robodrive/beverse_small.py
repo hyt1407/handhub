@@ -54,8 +54,8 @@ model = dict(
 )
 
 data = dict(
-    samples_per_gpu=1,
-    workers_per_gpu=4,
+    samples_per_gpu=3,
+    workers_per_gpu=6,
     train=dict(
         dataset=dict(
             receptive_field=receptive_field,
