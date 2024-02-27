@@ -6,3 +6,4 @@ from .models.motion_heads import FieryMotionHead, IterativeFlow
 from .models.detectors import BEVerse
 from .models.backbone import ConvNeXt
 from .models import utils
+from .models import modules
