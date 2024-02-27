@@ -32,6 +32,15 @@ BEVerse原始的datasets是MTLEgoNuScenesDataset，训练数据是原始的nusen
 
 ![img.png](asset/pipe_cfg.png)
 
+**FB结构运训环境**
+
+FB结构新增了bevformer组件，需要将mmcv升级到>=1.5.2。解决方法如下两种：
+
+1. 升级mmcv==1.5.2 mmdet==2.24.0 mmseg==0.24.0。然后手动将mmdet3d/\_\_init\_\_.py的mmcv_maximum_version修改为大于1.5.2的值。  
+2. 将已安装的1.5.2版本的mmcv中的_ext.cpython-38-x86_64-linux-gnu.so库文件和ops文件夹拷贝到当前mmcv的安装目录下
+
+升级mmcv后会出现`KeyError: 'SparseConv2d is already registered in conv layer'`的错误，只需要将mmdet3d/ops/spconv/conv.py中所有的@CONV_LAYERS.register_module()替换成@CONV_LAYERS.register_module(force=True)即可
+
 ### DEBUG
 
 关于torch版本，beverse工程推荐使用torch==1.10.2，但是在评测时发现torch1.10.2会报错，所以我升级成了1.13.0。但是！
