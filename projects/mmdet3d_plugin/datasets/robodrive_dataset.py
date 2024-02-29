@@ -139,7 +139,8 @@ class RobodriveDataset(NuScenesCorruptionDataset):
                  future_frames=0,
                  eval_version='detection_cvpr_2019',
                  filter_invalid_sample=False,
-                 use_valid_flag=True):
+                 use_valid_flag=True,
+                 pseudo_bda=False):
         super().__init__(
             data_root=data_root,
             ann_file=ann_file,
@@ -181,7 +182,7 @@ class RobodriveDataset(NuScenesCorruptionDataset):
 
         # for vector maps
         self.map_dataroot = self.data_root
-        
+
         map_xbound, map_ybound = grid_conf['xbound'], grid_conf['ybound']
         patch_h = map_ybound[1] - map_ybound[0]
         patch_w = map_xbound[1] - map_xbound[0]
@@ -203,6 +204,7 @@ class RobodriveDataset(NuScenesCorruptionDataset):
         # process infos so that they are sorted w.r.t. scenes & time_stamp
         self.data_infos.sort(key=lambda x: (x['scene_token'], x['timestamp']))
         self._set_group_flag()
+        self.pesudo_bda = pseudo_bda
 
     def get_cat_ids(self, idx):
         """Get category distribution of single scene.
@@ -238,7 +240,7 @@ class RobodriveDataset(NuScenesCorruptionDataset):
             list[dict]: List of annotations sorted by timestamps.
         """
         data = mmcv.load(ann_file)
-        
+
         # filter scenes
         data_infos = data['infos']
         sample_data_infos = []
@@ -248,7 +250,7 @@ class RobodriveDataset(NuScenesCorruptionDataset):
                     sample_data_infos.append(data_info)
             else:
                 sample_data_infos.append(data_info)
-        
+
         data_infos = list(sorted(sample_data_infos, key=lambda e: e['timestamp']))
         data_infos = data_infos[::self.load_interval]
         self.metadata = data['metadata']
@@ -300,7 +302,8 @@ class RobodriveDataset(NuScenesCorruptionDataset):
             next_frame = index + 1
 
             # 如何处理 invalid frame
-            if index != -1 and next_frame < len(self.data_infos) and self.data_infos[next_frame]['scene_token'] == cur_info['scene_token']:
+            if index != -1 and next_frame < len(self.data_infos) and self.data_infos[next_frame]['scene_token'] == \
+                    cur_info['scene_token']:
                 next_info = self.data_infos[next_frame]
                 # get ego2global transformation matrices
                 cur_egopose = self.get_egopose_from_info(cur_info)
@@ -401,13 +404,14 @@ class RobodriveDataset(NuScenesCorruptionDataset):
 
         # current frame
         img_infos.append(info['cams'])
-        
+
         if self.corruption is not None:
             for img_info in img_infos:
                 for cam_name, cam_info in img_info.items():
                     cur_path = cam_info['data_path']
-                    img_info[cam_name]['data_path'] = cur_path.replace('./data/nuscenes', osp.join(self.corruption_root, self.corruption))
-        
+                    img_info[cam_name]['data_path'] = cur_path.replace('./data/nuscenes',
+                                                                       osp.join(self.corruption_root, self.corruption))
+
         input_dict['img_info'] = img_infos
 
         input_dict['lidar2ego_rots'] = torch.tensor(pyquaternion.Quaternion(
@@ -605,3 +609,20 @@ class RobodriveDataset(NuScenesCorruptionDataset):
                                                  Box3DMode.DEPTH)
             show_result(points, show_gt_bboxes, show_pred_bboxes, out_dir,
                         file_name, show)
+
+    def prepare_test_data(self, index):
+        """Prepare data for testing.
+
+        Args:
+            index (int): Index for accessing the target data.
+
+        Returns:
+            dict: Testing data dict of the corresponding index.
+        """
+        input_dict = self.get_data_info(index)
+        self.pre_pipeline(input_dict)
+        example = self.pipeline(input_dict)
+        if self.pseudo_bda:
+            bs = example['img_inputs'][-1].size(0)
+            example['img_inputs'] = [i for i in example['img_inputs']] + [torch.eye(3).expand(bs, -1, -1)]
+        return example

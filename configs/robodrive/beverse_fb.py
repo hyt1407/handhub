@@ -96,5 +96,6 @@ model = dict(
 )
 
 data = dict(
-    train=dict(dataset=dict(type='RobodriveDatasetPseudo'), val=dict(type='RobodriveDatasetPseudo'))
+    train=dict(dataset=dict(type='RobodriveDatasetPseudo'), val=dict(type='RobodriveDatasetPseudo'),
+               test=dict(pseudo_bda=True))
 )
