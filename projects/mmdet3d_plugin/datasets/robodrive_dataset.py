@@ -204,7 +204,7 @@ class RobodriveDataset(NuScenesCorruptionDataset):
         # process infos so that they are sorted w.r.t. scenes & time_stamp
         self.data_infos.sort(key=lambda x: (x['scene_token'], x['timestamp']))
         self._set_group_flag()
-        self.pesudo_bda = pseudo_bda
+        self.pseudo_bda = pseudo_bda
 
     def get_cat_ids(self, idx):
         """Get category distribution of single scene.
@@ -623,6 +623,7 @@ class RobodriveDataset(NuScenesCorruptionDataset):
         self.pre_pipeline(input_dict)
         example = self.pipeline(input_dict)
         if self.pseudo_bda:
-            bs = example['img_inputs'][-1].size(0)
-            example['img_inputs'] = [i for i in example['img_inputs']] + [torch.eye(3).expand(bs, -1, -1)]
+            assert len(example['img_inputs']) == 1, "Only the first element of the list was modified "
+            bs = example['img_inputs'][0][-1].size(0)
+            example['img_inputs'][0] = [i for i in example['img_inputs'][0]] + [torch.eye(3).expand(bs, -1, -1)]
         return example
