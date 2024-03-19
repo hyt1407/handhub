@@ -25,7 +25,7 @@ model = dict(
     type='FBverse',
     transformer=dict(numC_input=80,
                      numC_Trans=80),
-    pts_bbox_head=dict(in_channels=80),
+    pts_bbox_head=dict(in_channels=80,bev_encoder_fpn_type='maskup',),
     temporal_model=dict(in_channels=80, start_out_channels=80),
     depth_net=dict(type='CM_DepthNet',  # camera-aware depth net
                    in_channels=_dim_,
