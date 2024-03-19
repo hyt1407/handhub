@@ -401,4 +401,4 @@ class MaskUp(nn.Module):
         all_mask_preds = torch.einsum('lbqc,bchw->lbqhw', mask_embed,
                                       mask_features)
 
-        return all_mask_preds[-1]
+        return all_mask_preds

@@ -1,3 +1,5 @@
+from functools import partial
+
 import torch
 import torch.nn as nn
 from mmcv.runner import BaseModule
@@ -8,8 +10,6 @@ from mmdet3d.models.builder import HEADS, build_loss
 from .bev_encoder import BevEncode
 from .map_head import BevFeatureSlicer
 from mmcv.runner import auto_fp16, force_fp32
-
-import pdb
 
 
 @HEADS.register_module()
@@ -201,14 +201,14 @@ class MultiTaskHead(BaseModule):
         for task_name in self.task_feat_cropper:
             # crop feature before the encoder
             task_feat = self.task_feat_cropper[task_name](bev_feats)
-            
+
             # task-specific decoder
             if task_name == 'motion':
                 task_pred = self.task_decoders[task_name](
                     [task_feat], targets=targets)
             else:
                 task_pred = self.task_decoders[task_name]([task_feat])
-            
+
             predictions[task_name] = task_pred
 
         return predictions
@@ -232,7 +232,69 @@ class MultiTaskHead(BaseModule):
                     [task_feat], targets=targets)
             else:
                 task_pred = self.task_decoders[task_name]([task_feat])
-            
+
             predictions[task_name] = task_pred
 
         return predictions
+
+
+def multi_apply_dict(func, *args, **kwargs):
+    loss = {'loss_semantic_seg': 0, 'map_sum': 0}
+    pfunc = partial(func, **kwargs) if kwargs else func
+    map_results = map(pfunc, *args)
+    for i in map_results:
+        loss['loss_semantic_seg'] += i['loss_semantic_seg']
+        loss['map_sum'] += i['map_sum']
+    return loss
+
+
+@HEADS.register_module()
+class MapMaskMultiTaskHead(MultiTaskHead):
+    def forward(self, bev_feats, targets=None):
+        if self.shared_feature:
+            return self.forward_with_shared_features(bev_feats, targets)
+
+        predictions = {}
+        for task_name, task_feat_encoder in self.taskfeat_encoders.items():
+
+            # crop feature before the encoder
+            task_feat = self.task_feat_cropper[task_name](bev_feats)
+
+            # task-specific feature encoder
+            task_feat = task_feat_encoder([task_feat])
+
+            # task-specific decoder
+            if task_name == 'motion':
+                task_pred = self.task_decoders[task_name](
+                    [task_feat], targets=targets)
+            else:
+                task_pred = [self.task_decoders[task_name]([i]) for i in task_feat]
+
+            predictions[task_name] = task_pred
+
+        return predictions
+
+    def loss(self, predictions, targets):
+        pred = [{'map': i} for i in predictions['map']]
+        targets = [targets] * len(pred)
+        loss_all = multi_apply_dict(super(MapMaskMultiTaskHead, self).loss, pred, targets)
+        for k, v in loss_all.items():
+            loss_all[k] = v / len(pred)
+        return loss_all
+
+    def inference(self, predictions, img_metas, rescale):
+        res = {}
+        # derive bounding boxes for detection head
+        if self.task_enbale.get('3dod', False):
+            raise NotImplementedError('not support 3dod in this class')
+
+        # derive semantic maps for map head
+        if self.task_enbale.get('map', False):
+            res['pred_semantic_indices'] = self.task_decoders['map'].get_semantic_indices(
+                predictions['map'][-1],
+            )
+
+        if self.task_enbale.get('motion', False):
+            raise NotImplementedError('not support motion in this class')
+
+        return res
