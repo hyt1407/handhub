@@ -357,7 +357,7 @@ input_modality = dict(
     prototype='lift-splat-shoot',
 )
 
-corruption_root = './data/robodrive-release'
+corruption_root = './data/robodrive-phase2'
 data = dict(
     samples_per_gpu=2,
     workers_per_gpu=2,

@@ -23,9 +23,10 @@ _ffn_dim_ = numC_Trans * 4
 receptive_field = 3
 model = dict(
     type='FBverse',
+    pretrained='ckpt/bervrse_epoch_20.pth',
     transformer=dict(numC_input=80,
                      numC_Trans=80),
-    pts_bbox_head=dict(type='MapMaskMultiTaskHead',in_channels=80,bev_encoder_fpn_type='maskup',),
+    pts_bbox_head=dict(in_channels=80),
     temporal_model=dict(in_channels=80, start_out_channels=80),
     depth_net=dict(type='CM_DepthNet',  # camera-aware depth net
                    in_channels=_dim_,
