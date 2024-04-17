@@ -96,10 +96,10 @@ model = dict(
 )
 
 data = dict(
-    samples_per_gpu=2,
-    workers_per_gpu=4,
+    samples_per_gpu=3,
+    workers_per_gpu=6,
     train=dict(dataset=dict(type='RobodriveDatasetPseudo')),
     val=dict(type='RobodriveDatasetPseudo'),
     test=dict(pseudo_bda=True)
 )
-optimizer_config = dict(type='GradientCumulativeOptimizerHook', cumulative_iters=2)
+# optimizer_config = dict(type='GradientCumulativeOptimizerHook', cumulative_iters=2)
